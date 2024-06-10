@@ -1,5 +1,8 @@
 # Project: dataops-takehome
 
+## Documentation
+- Check out the documentation at https://codelabs-preview.appspot.com/?file_id=1sYFqWLjv5bF9tX6OBQLdvB7MViu81BtOPH_dIhp64Co#0
+
 ## How to run
 ```
 1. Install docker on the desktop - https://docs.docker.com/compose/install/
