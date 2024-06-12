@@ -34,7 +34,12 @@ jobs:
           sudo apt install build-essential -y
           sudo apt-get clean
           
+          # Build etl application          
           GOARCH=amd64 GOOS=linux go build -tags musl -o dataops-takehome
+          
+          # Build api server
+          cd api
+          GOARCH=amd64 GOOS=linux go build -tags musl -o dataops-takehome-server
 
       - name: Login to Docker Hub
         env:
@@ -44,5 +49,19 @@ jobs:
 
       - name: Build and Push Docker image
         run: |
+          # Build etl application
           docker build -t shiva5128/dataops-takehome:latest .
           docker push shiva5128/dataops-takehome:latest
+          
+          # Build api server
+          cd api
+          docker build -t shiva5128/dataops-takehome-server:latest .
+          docker push shiva5128/dataops-takehome-server:latest
+          
+          # Build api server
+          cd ../ui
+          docker build -t shiva5128/dataops-takehome-ui:latest .
+          docker push shiva5128/dataops-takehome-ui:latest
+          
+          
+          
