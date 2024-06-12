@@ -26,7 +26,7 @@ services:
       timeout: 10s
       retries: 2
 
-  app:
+  etl-app:
     image: shiva5128/dataops-takehome:latest
     depends_on:
       localstack:
@@ -49,4 +49,44 @@ services:
       MAX_NO_RESPONSES: 5
       MAX_CONSECUTIVE_NO_RESPONSES: 15
 
+      ENCRYPTION_SECRET: "example key 1234"
+
+      PORT: 8080
+
     entrypoint: ["./dataops-takehome"]
+
+  api-server:
+      image: shiva5128/dataops-takehome-server:latest
+      depends_on:
+        localstack:
+          condition: service_healthy
+        database:
+          condition: service_healthy
+
+      environment:
+        DB_USER: postgres
+        DB_PASS: postgres
+        DB_HOST: database
+        DB_PORT: 5432
+        DB_NAME: postgres
+        DRIVER_NAME: postgres
+
+        ENCRYPTION_SECRET: "example key 1234"
+
+        PORT: 8080
+      ports:
+        - "8080:8080"
+
+      entrypoint: ["./dataops-takehome-server"]
+
+  ui:
+    image: shiva5128/dataops-takehome-ui:latest
+    depends_on:
+      - api-server
+
+    environment:
+      API_SERVER_ENDPOINT: http://api-server:8080/login-data
+    ports:
+      - "8090:8090"
+
+    entrypoint: ["streamlit", "run", "main.py", "--server.port", "8090"]

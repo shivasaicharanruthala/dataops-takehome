@@ -16,20 +16,22 @@ type transformer struct {
 	logger    *log.CustomLogger
 	extractor Extract
 	loader    Loader
+	wg        *sync.WaitGroup
 }
 
 // NewProcessor creates a new instance of the Processor with the given extractor and loader.
-func NewProcessor(logger *log.CustomLogger, extractor Extract, loader Loader) Processor {
+func NewProcessor(logger *log.CustomLogger, wg *sync.WaitGroup, extractor Extract, loader Loader) Processor {
 	return &transformer{
 		logger:    logger,
 		extractor: extractor,
 		loader:    loader,
+		wg:        wg,
 	}
 }
 
 // Worker is a function that continuously calls the API to fetch data and sends the result to a channel.
-func (p *transformer) Worker(ctx context.Context, id int, wg *sync.WaitGroup, results chan<- *model.Response) {
-	defer wg.Done() // Ensure the WaitGroup counter is decremented when the function returns
+func (p *transformer) Worker(ctx context.Context, id int, results chan<- *model.Response) {
+	defer p.wg.Done() // Ensure the WaitGroup counter is decremented when the function returns
 
 	// Retrieve maximum allowed empty responses and maximum consecutive empty responses from environment variables
 	maxEmptyResponses, _ := strconv.Atoi(os.Getenv("MAX_NO_RESPONSES"))
@@ -55,7 +57,7 @@ func (p *transformer) Worker(ctx context.Context, id int, wg *sync.WaitGroup, re
 			}
 
 			// Send the valid response to the results channel if message exists.
-			if response != nil && response.MessageId != "" {
+			if response != nil && response.MessageId != nil && response.UserID != nil {
 				results <- response
 				emptyResponseCount = 0     // Reset the empty response counter
 				waitTime = initialWaitTime // Reset the wait time
@@ -87,6 +89,7 @@ func (p *transformer) Worker(ctx context.Context, id int, wg *sync.WaitGroup, re
 func (p *transformer) ProcessDataFromWorker(ctx context.Context, results chan *model.Response) {
 	batchSize, _ := strconv.Atoi(os.Getenv("BATCH_SIZE"))
 
+	//TODO: not required pointer to model.Response
 	var batch []*model.Response
 	for {
 		select {

@@ -8,26 +8,29 @@ import (
 	"github.com/shivasaicharanruthala/dataops-takehome/model"
 	"io"
 	"net/http"
-	"os"
 )
 
 type extractor struct {
-	logger      *log.CustomLogger
-	SqsEndpoint string `json:"sqs_endpoint"`
+	httpClient    *http.Client
+	logger        *log.CustomLogger
+	sqsEndpoint   string
+	encryptionKey string
 }
 
 // NewExtractor creates a new instance of the Extractor and initializes it with the SQS endpoint from environment variables.
-func NewExtractor(logger *log.CustomLogger) Extract {
+func NewExtractor(logger *log.CustomLogger, sqsEndpoint string, encryptionKey string) Extract {
 	return &extractor{
-		logger:      logger,
-		SqsEndpoint: os.Getenv("SQS_ENDPOINT"),
+		httpClient:    new(http.Client),
+		logger:        logger,
+		sqsEndpoint:   sqsEndpoint,
+		encryptionKey: encryptionKey,
 	}
 }
 
 // FetchDataFromSQS fetches data from the SQS endpoint, processes the response, and returns a model.Response.
-func (ex *extractor) FetchDataFromSQS() (*model.Response, error) {
+func (ex extractor) FetchDataFromSQS() (*model.Response, error) {
 	// Create a new GET request to the SQS endpoint.
-	req, err := http.NewRequest("GET", ex.SqsEndpoint, nil)
+	req, err := http.NewRequest("GET", ex.sqsEndpoint, nil)
 	if err != nil {
 		lm := log.Message{Level: "ERROR", ErrorMessage: fmt.Sprintf("Error creating request to sqs enpoint: %v", err.Error())}
 		ex.logger.Log(&lm)
@@ -36,7 +39,7 @@ func (ex *extractor) FetchDataFromSQS() (*model.Response, error) {
 	}
 
 	// Send the request and receive the response.
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := ex.httpClient.Do(req)
 	if err != nil {
 		lm := log.Message{Level: "ERROR", ErrorMessage: fmt.Sprintf("Error sending request to sqs enpoint: %v", err.Error())}
 		ex.logger.Log(&lm)
@@ -83,10 +86,13 @@ func (ex *extractor) FetchDataFromSQS() (*model.Response, error) {
 	}
 
 	// Mask sensitive data in the Response struct.
-	err = res.MaskBody()
+	err = res.MaskBody(ex.encryptionKey)
 	if err != nil {
 		return nil, err
 	}
+
+	// Validation of fields
+	//_ = res.Validation()
 
 	// Return the populated Response struct.
 	return &res, nil

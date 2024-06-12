@@ -246,13 +246,13 @@
       - **Handling Partial Batch Scenarios:** Addressed the scenario where some workers consume messages while others do not, resulting in fewer messages than BATCH_SIZE. Ensured that these remaining records are still processed and inserted into the database efficiently, even if the batch is not fully populated.
       
 ## Architecture diagram
-![assignment-2.png](assignment-2.png)
+![assignment-2.png](images/assignment-2.png)
 
 ## Running Application:  Logs
 - Running Application using docker-compose
-![img_1.png](img_1.png)
+![img_1.png](images/img_1.png)
 - Screenshot of images running in docker
-![img.png](img.png)
+![img.png](images/img.png)
 - Logs from running application
 ``` 
 2024-06-09 20:37:50 Error loading .env file

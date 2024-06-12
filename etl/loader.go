@@ -52,3 +52,7 @@ func (l *loader) BatchInsert(ctx context.Context, responses []*model.Response) e
 
 	return nil
 }
+
+func (l *loader) SequentialInsert(ctx context.Context, responses []model.Response) error {
+	return nil
+}

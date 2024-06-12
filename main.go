@@ -30,6 +30,8 @@ func main() {
 	// Retrieve the number of workers and batch size from environment variables and convert them to integers.
 	noOfWorkers, _ := strconv.Atoi(os.Getenv("NO_OF_WORKERS"))
 	batchSize, _ := strconv.Atoi(os.Getenv("BATCH_SIZE"))
+	sqsEndpoint := os.Getenv("SQS_ENDPOINT")
+	encryptionKey := os.Getenv("ENCRYPTION_SECRET")
 
 	// Initialize Logger
 	logger, err := log.NewCustomLogger("logs")
@@ -46,18 +48,13 @@ func main() {
 	dbConn, err := db.Open()
 	defer dbConn.Close()
 	if err != nil {
+		lm = log.Message{Level: "ERROR", ErrorMessage: fmt.Sprintf("Initiating database failed with error %v", err.Error())}
+		logger.Log(&lm)
+
 		return
 	}
 
 	lm = log.Message{Level: "INFO", Msg: fmt.Sprintf("Database initilized sucessfully.")}
-	logger.Log(&lm)
-
-	// Initialize the ETL components.
-	extractor := etl.NewExtractor(logger)
-	loader := etl.NewLoader(logger, dbConn)
-	processor := etl.NewProcessor(logger, extractor, loader)
-
-	lm = log.Message{Level: "INFO", Msg: fmt.Sprintf("Extractor, Loader, Processor initilized sucessfully.")}
 	logger.Log(&lm)
 
 	// WaitGroup to synchronize goroutines
@@ -67,6 +64,14 @@ func main() {
 	// Context to handle singling to go routines to terminate
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Initialize the ETL components.
+	extractor := etl.NewExtractor(logger, sqsEndpoint, encryptionKey)
+	loader := etl.NewLoader(logger, dbConn)
+	processor := etl.NewProcessor(logger, &wg, extractor, loader)
+
+	lm = log.Message{Level: "INFO", Msg: fmt.Sprintf("Extractor, Loader, Processor initilized sucessfully.")}
+	logger.Log(&lm)
+
 	// Start worker goroutines
 	for idx := 0; idx < noOfWorkers; idx++ {
 		wg.Add(1)
@@ -74,7 +79,7 @@ func main() {
 		lm = log.Message{Level: "INFO", Msg: fmt.Sprintf("Worker %v assigned to extract data.", idx)}
 		logger.Log(&lm)
 
-		go processor.Worker(ctx, idx, &wg, results)
+		go processor.Worker(ctx, idx, results)
 	}
 
 	// Channel to listen for termination signals

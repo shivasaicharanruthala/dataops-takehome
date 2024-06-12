@@ -8,10 +8,8 @@ import (
 )
 
 // encrypt encrypts plaintext using AES encryption with the provided key.
-func encrypt(plaintext string) (*string, error) {
-	key := []byte("example key 1234")
-
-	block, err := aes.NewCipher(key)
+func encrypt(plaintext string, key string) (*string, error) {
+	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -33,16 +31,14 @@ func encrypt(plaintext string) (*string, error) {
 	return &encryptedText, nil
 }
 
-// decrypt decrypts ciphertext using AES decryption with the provided key.
-func decrypt(ciphertextStr string) (*string, error) {
-	key := []byte("example key 1234")
-
+// Decrypt decrypts ciphertext using AES decryption with the provided key.
+func Decrypt(ciphertextStr string, key string) (*string, error) {
 	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextStr)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return nil, err
 	}
